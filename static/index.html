@@ -68,20 +68,6 @@
     .catch(e => setError(e.message))
     .then(() => setLoading(false));
   }
-
-  const getMessages = () => {
-    fetch(`/messages`)
-      .then(res => res.json())
-      .then(res => {
-        if (res && res.length > 0) {
-          document.getElementById('messages').innerHTML = res.reverse().map(msg => {
-            return `<div class="message"><h5>${msg.from}:</h5><p>${msg.message}</p></div>`;
-          }).join(`
-`);
-        }
-      })
-  }
-
   window.cookieStore.get('alias').then(c => {
     if (c && c.value && c.value.length > 0) {
       document.getElementById('alias').innerText = `(as ${c.value})`;
@@ -95,9 +81,6 @@
         send();
       }
     }
-
-    setInterval(getMessages, 3000);
-    getMessages();
   })
 </script>
 <div class="wrapper" id="wrapper">

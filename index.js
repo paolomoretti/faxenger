@@ -1,7 +1,7 @@
 const PORT = process.env.PORT || 3303;
 const express = require('express');
 const cookieParser = require('cookie-parser');
-const {renderIndex, aliasChecker, onError, setRecipient, sendMessage, getMessages, getClients} = require("./server/utils");
+const {renderIndex, aliasChecker, onError, setRecipient, sendMessage, getClients} = require("./server/utils");
 const {startTCPServer, SET_ALIAS_CONFIG_KEY} = require("./server/tcp");
 
 const app = express();
@@ -12,7 +12,6 @@ app.post(`/set-recipient`, setRecipient);
 app.use(aliasChecker);
 app.post(`/message`, sendMessage);
 app.get(`/`, renderIndex);
-app.get(`/messages`, getMessages);
 app.get(`/clients`, getClients);
 
 app.on('error', onError);

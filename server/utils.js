@@ -33,9 +33,6 @@ module.exports = {
   renderIndex(req, res) {
     res.sendFile(path.join(__dirname, '../', 'static', 'index.html'));
   },
-  getMessages(req, res) {
-    res.send(req.app.locals.messages);
-  },
   getClients(req, res) {
     res.send({ clients: Object.keys(TCP.SOCKETS).length, addrs: Object.keys(TCP.SOCKETS)})
   }

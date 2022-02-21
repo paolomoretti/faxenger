@@ -25,7 +25,6 @@ function handleConnection(conn) {
   conn.on('error', onConnError);
 
   function onConnData(d) {
-    const now = new Date().toLocaleString("en-UK");
     d = d.trim();
     if (d.indexOf(SET_ALIAS_CONFIG_KEY) === 0) {
       MAP[source] = d.split(SET_ALIAS_CONFIG_KEY)[1];
@@ -34,7 +33,7 @@ function handleConnection(conn) {
     }
     console.log(`Received "${d}" from ${getName(source)}. Broadcast to ${getOtherSocketNames(source)}`);
     getOtherSockets(source).forEach(addr =>
-      SOCKETS[addr].write(`${now}\nFrom ${getName(source)}:\n${d}\n\n----------\n`)
+      SOCKETS[addr].write(TCP.transformMessage(d, getName(source)))
     );
   }
   function onConnClose() {
@@ -47,7 +46,13 @@ function handleConnection(conn) {
 }
 
 const TCP = {
-  SOCKETS: SOCKETS,
+  SOCKETS,
+  MAP,
+  SET_ALIAS_CONFIG_KEY,
+  transformMessage(msg, sourceName) {
+    const now = new Date().toLocaleString("en-UK");
+    return `${now}\nFrom ${sourceName}:\n${msg}\n\n`;
+  },
   async startTCPServer(app) {
     return new Promise(resolve => {
       try {
@@ -78,7 +83,7 @@ const TCP = {
       });
 
       client.on('data', function(data) {
-        console.log(`Socket received: ` + data);
+        console.log(`Socket received: \n**********` + data + `\n**********`);
       });
 
       client.on('close', function() {
@@ -88,8 +93,7 @@ const TCP = {
       app.tcpClient = client;
       return client;
     });
-  },
-  SET_ALIAS_CONFIG_KEY
+  }
 }
 
 module.exports = TCP;
