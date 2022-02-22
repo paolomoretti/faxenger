@@ -14,9 +14,8 @@ const char* ssid = "bitterg";
 const char* password = "casapiton47";
 WiFiClient client;
 
-const char* caciottaIP = "192.168.86.198";
-int port = 9000;  //Port number
-//WiFiServer server(port);
+const char* TCP_SERVER_IP = "sestra.local";
+int TCP_SERVER_PORT = 9000;
 
 void setup() {
   Serial.begin(LOGS_BAUDRATE);
@@ -32,12 +31,12 @@ void setup() {
   Serial.print("\nIP address: ");
   Serial.print(WiFi.localIP());
 
-  if (!client.connect(caciottaIP, port)) {
+  if (!client.connect(TCP_SERVER_IP, TCP_SERVER_PORT)) {
     Serial.println("Connection to host failed");
     delay(1000);
     return;
   } 
-  Serial.println("Connected to TCP server on " + String(caciottaIP) + ":" + String(port));
+  Serial.println("Connected to TCP server on " + String(TCP_SERVER_IP) + ":" + String(TCP_SERVER_PORT));
   client.write("ALIAS:Paolo");
 
   // Setup printer
@@ -45,19 +44,19 @@ void setup() {
   printer.begin();
   printer.setDefault();
   printer.setHeatConfig(11, 200, 100);
-  printer.setLineHeight(24);
+  printer.setLineHeight(1);
   printer.boldOn();
-//  printer.doubleWidthOn();
+  printer.doubleWidthOn();
   printer.wake();
-  printer.println(F("Hey, I'm ready!!"));
-  printer.feed(1);
+  printer.println(F("\nPaolo is ready!!"));
+  printer.doubleWidthOff();
+  printer.feed(2);
 }
 
 void loop() {
   while(client.connected()) {
     while(client.available() > 0) {
       printer.write(client.read());
-//      Serial.write(client.read());
     }
   }
 }

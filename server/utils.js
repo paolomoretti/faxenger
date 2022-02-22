@@ -3,25 +3,31 @@ const TCP = require("./tcp");
 
 module.exports = {
   aliasChecker(req, res, next) {
-    const {app} = req;
-    if (!app.locals.alias && !req.cookies.alias) {
+    if (!req.cookies.alias || Object.values(TCP.MAP).indexOf(req.cookies.alias) === -1) {
       // Haven't got an alias yet, let's set it
       return res.sendFile(path.join(__dirname, '../', 'static', 'set_recipient_page.html'));
     }
-    app.locals.alias = (app.locals.alias || req.cookies.alias).trim();
     next();
   },
   onError(app) {
     console.error(`APP ERROR`, app);
   },
-  setRecipient(req, res) {
-    const {app} = req;
+  setAlias(req, res) {
     if (req.body && req.body.alias) {
       const alias = req.body.alias.replace(/\s/gi, '_');
-      app.locals.alias = alias;
-      app.tcpClient.write(`${TCP.SET_ALIAS_CONFIG_KEY}${alias}`);
+      if (Object.values(TCP.MAP).indexOf(alias) === -1) {
+        let availableAliases = Object.values(TCP.MAP).filter(a => a !== TCP.TCP_SERVER_ALIAS);
+        if (availableAliases.length === 0) {
+          availableAliases = 'None';
+        }
+        return res.status(400).json({ error: `Alias "${alias}" not recognised, available: ${availableAliases}`})
+      } else {
+        return res.cookie('alias', alias).send();
+      }
+      // app.locals.alias = alias;
+      // app.tcpClient.write(`${TCP.SET_ALIAS_CONFIG_KEY}${alias}`);
     }
-    res.cookie('alias', app.locals.alias).send();
+    res.status(400).json({ error: `Can't set Alias, missing body`});
   },
   sendMessage(req, res) {
     const msg = req.body.message;
@@ -34,6 +40,9 @@ module.exports = {
     res.sendFile(path.join(__dirname, '../', 'static', 'index.html'));
   },
   getClients(req, res) {
-    res.send({ clients: Object.keys(TCP.SOCKETS).length, addrs: Object.keys(TCP.SOCKETS)})
+    const clients = Object.keys(TCP.SOCKETS).reduce((aggr, k) =>
+      [{ addr: k, name: TCP.MAP[k] || 'Unknown' }, ...aggr]
+    , []);
+    res.send(clients.filter(c => c.name !== TCP.TCP_SERVER_ALIAS));
   }
 }

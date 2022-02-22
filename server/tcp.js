@@ -1,5 +1,6 @@
 const TCP_PORT = process.env.TCP_PORT || 9000;
 const TCP_HOST = process.env.TCP_HOST || 'localhost';
+const TCP_SERVER_ALIAS = 'server';
 const net = require("net");
 
 const SET_ALIAS_CONFIG_KEY = 'ALIAS:';
@@ -38,6 +39,7 @@ function handleConnection(conn) {
   }
   function onConnClose() {
     delete SOCKETS[source];
+    delete MAP[source];
     console.log(`[${getName(source)}] bye bye ${getName(source)} (${Object.keys(SOCKETS).length} left)`);
   }
   function onConnError(err) {
@@ -49,6 +51,7 @@ const TCP = {
   SOCKETS,
   MAP,
   SET_ALIAS_CONFIG_KEY,
+  TCP_SERVER_ALIAS,
   transformMessage(msg, sourceName) {
     const now = new Date().toLocaleString("en-UK");
     return `${now}\nFrom ${sourceName}:\n${msg}\n\n`;
@@ -91,6 +94,7 @@ const TCP = {
         resolve();
       });
       app.tcpClient = client;
+      client.write(`ALIAS:${TCP_SERVER_ALIAS}`);
       return client;
     });
   }
