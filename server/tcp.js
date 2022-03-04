@@ -1,16 +1,18 @@
 const TCP_PORT = process.env.TCP_PORT || 9000;
 const TCP_HOST = process.env.TCP_HOST || 'localhost';
-const TCP_SERVER_ALIAS = 'server';
+const TCP_SERVER_ALIAS = process.env.TCP_SERVER_ALIAS || 'server';
 const net = require("net");
 
 const SET_ALIAS_CONFIG_KEY = 'ALIAS:';
+const SET_FROM_CONFIG_KEY = 'FROM:';
 const SOCKETS = {};
 const MAP = {};
 
 const getName = (addr) => MAP[addr] || addr;
 const getSockets = () => Object.keys(SOCKETS);
 const getOtherSockets = (addr) => getSockets().filter(s => s !== addr);
-const getOtherSocketNames = (addr) => getOtherSockets(addr).map(getName);
+const getOtherSocketsByName = (name) => Object.keys(MAP).filter(s => MAP[s] !== name);
+const getOtherSocketNames = (addr, list = getOtherSockets(addr)) => list.map(getName);
 
 function handleConnection(conn) {
   console.log(`New TCP connection`, conn.address());
@@ -27,14 +29,25 @@ function handleConnection(conn) {
 
   function onConnData(d) {
     d = d.trim();
+    let message = d;
+    let recipientAddrs = getOtherSockets(source);
+    let recipientNames = getOtherSocketNames(source);
+    let fromName = getName(source);
+
     if (d.indexOf(SET_ALIAS_CONFIG_KEY) === 0) {
       MAP[source] = d.split(SET_ALIAS_CONFIG_KEY)[1];
-      console.log(`[${source}] alias set to ${getName(source)}`);
+      console.log(`[${source}] alias set to ${fromName}`);
       return;
     }
-    console.log(`Received "${d}" from ${getName(source)}. Broadcast to ${getOtherSocketNames(source)}`);
-    getOtherSockets(source).forEach(addr =>
-      SOCKETS[addr].write(TCP.transformMessage(d, getName(source)))
+    if (d.indexOf(SET_FROM_CONFIG_KEY) === 0) {
+      fromName = d.split(SET_FROM_CONFIG_KEY)[1].split(' ')[0];
+      message = d.replace(`${SET_FROM_CONFIG_KEY}${fromName} `, '');
+      recipientAddrs = getOtherSocketsByName(fromName);
+      recipientNames = getOtherSocketNames(fromName, recipientAddrs);
+    }
+    console.log(`Received "${message}" from ${fromName}. Broadcast to ${recipientNames}`);
+    recipientAddrs.forEach(addr =>
+      SOCKETS[addr].write(TCP.transformMessage(message, fromName))
     );
   }
   function onConnClose() {
@@ -51,6 +64,7 @@ const TCP = {
   SOCKETS,
   MAP,
   SET_ALIAS_CONFIG_KEY,
+  SET_FROM_CONFIG_KEY,
   TCP_SERVER_ALIAS,
   transformMessage(msg, sourceName) {
     const now = new Date().toLocaleString("en-UK");

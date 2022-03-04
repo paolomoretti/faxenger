@@ -30,9 +30,12 @@ module.exports = {
     res.status(400).json({ error: `Can't set Alias, missing body`});
   },
   sendMessage(req, res) {
+    const alias = req.cookies.alias;
     const msg = req.body.message;
-    if (req.app.tcpClient && req.app.tcpClient.write) {
-      req.app.tcpClient.write(msg);
+    if (req.app.tcpClient && req.app.tcpClient.write && alias) {
+      req.app.tcpClient.write(`${TCP.SET_FROM_CONFIG_KEY}${alias} ${msg}`);
+    } else {
+      console.log(`SOMETHING WRONG`);
     }
     res.send('ok');
   },
