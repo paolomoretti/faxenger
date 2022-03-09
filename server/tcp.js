@@ -1,6 +1,6 @@
 const TCP_PORT = process.env.TCP_PORT || 9000;
 const TCP_HOST = process.env.TCP_HOST || 'localhost';
-const TCP_SERVER_ALIAS = process.env.TCP_SERVER_ALIAS || 'server';
+const TCP_SERVER_ALIAS = process.env.TCP_SERVER_ALIAS || '__SERVER__';
 const net = require("net");
 
 const SET_ALIAS_CONFIG_KEY = 'ALIAS:';
@@ -29,11 +29,36 @@ function handleConnection(conn) {
 
   function onConnData(d) {
     d = d.trim();
-    let message = d;
+    let message = d + "\n";
     let recipientAddrs = getOtherSockets(source);
     let recipientNames = getOtherSocketNames(source);
     let fromName = getName(source);
 
+    if (d.match('HELP')) {
+      return console.log(`
+        *******************
+        ** Faxenger help **
+        *******************
+        Commands:
+        > GET_CLIENTS - display the list of connected clients
+        > LOG:{1} - display log 
+        > ALIAS:{1} - set the alias for the client address
+        > FROM:{1} {2} - force the sender to the passed alias ({1}) and send message ({2}) 
+      `);
+    }
+    if (d.match('GET_CLIENTS')) {
+      console.log(`${fromName} asked for clients: ${getSockets().map(getName)}`)
+      return;
+    }
+    if (d.indexOf('LOG:') === 0) {
+      // This is a log from the client
+      console.log(`LOG from ${source} (${getName(source)}): ${d.replace(`LOG:`, '')}`);
+      return;
+    }
+    if (d.indexOf('keep-alive') > -1) {
+      console.log(`KEEP-ALIVE message, skip`);
+      return;
+    }
     if (d.indexOf(SET_ALIAS_CONFIG_KEY) === 0) {
       MAP[source] = d.split(SET_ALIAS_CONFIG_KEY)[1];
       console.log(`[${source}] alias set to ${fromName}`);
@@ -100,7 +125,7 @@ const TCP = {
       });
 
       client.on('data', function(data) {
-        console.log(`Socket received: \n**********` + data + `\n**********`);
+        console.log(`Socket received: \n**********\n` + data + `**********`);
       });
 
       client.on('close', function() {
