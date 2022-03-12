@@ -2,21 +2,21 @@
 #include "SoftwareSerial.h"
 #include <ESP8266WiFi.h>
 #include <WiFiClient.h>
-#define TX_PIN 4 // Arduino transmit  YELLOW WIRE labeled TX on printer
-#define RX_PIN 5 // Arduino receive   BLUE WIRE labeled RX on printer
+#define TX_PIN 0 // Arduino transmit  YELLOW WIRE labeled TX on printer
+#define RX_PIN 2 // Arduino receive   BLUE WIRE labeled RX on printer
 #define PRINTER_BAUDRATE  9600
 #define LOGS_BAUDRATE  4800
 
 SoftwareSerial mySerial(RX_PIN, TX_PIN); // Declare SoftwareSerial obj first
 Adafruit_Thermal printer(&mySerial);     // Pass addr to printer constructor
 
-char* alias = "Sari";
+char* alias = "Pablo";
 const char* ssid = "bitterg";
 const char* password = "casapiton47";
 WiFiClient client;
 
-const char* TCP_SERVER_IP = "sestra.local";
-//const char* TCP_SERVER_IP = "192.168.86.209";
+//const char* TCP_SERVER_IP = "sestra.local";
+const char* TCP_SERVER_IP = "192.168.86.209";
 int TCP_SERVER_PORT = 9000;
 
 void connectToWiFi() {
@@ -34,6 +34,7 @@ bool connectToTCP() {
     strcpy(buf, "ALIAS:");
     strcat(buf, alias);
     client.write(buf);
+    Serial.println("Set ALIAS to " + String(alias));
     return true;
   }
   return false;
@@ -80,21 +81,40 @@ void setup() {
 void loop() {
   while (isWiFiConnected()) {
     while(client.connected()) {
-      String clientCommand;
-      clientCommand= "";
-      
       while(client.available() > 0) {
         // Message coming in
+        String clientCommand = "";
         int h = client.available();
-  
+        bool shouldPrint = true;
+        printer.wake();
+
+        if (!printer.hasPaper()) {
+          client.write("LOG:Error:NO_PAPER");
+        }
+        
         for (int i = 0; i < h; i++) {
           uint8_t chunk = client.read();
           clientCommand+= (char)chunk;
-          printer.write(chunk);
+          if (clientCommand == ">" && shouldPrint) {
+            shouldPrint = false;
+            Serial.print("Skip message\n");
+          }
+          if (shouldPrint) {
+            printer.write(chunk);
+          }
         }
         Serial.print("[START]\n");
         Serial.print(clientCommand);
         Serial.print("[END]\n");
+        if (shouldPrint) {
+          Serial.print("Printed\n");
+          client.write("LOG:Received");
+        } else {
+          Serial.print("Skipped\n");
+          client.write("LOG:Received and skipped");
+        }
+
+        printer.sleep();
       }
     }
     // TCP client disconnected

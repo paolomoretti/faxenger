@@ -34,25 +34,29 @@ function handleConnection(conn) {
     let recipientNames = getOtherSocketNames(source);
     let fromName = getName(source);
 
+    if (d === '') {
+      return;
+    }
     if (d.match('HELP')) {
-      return console.log(`
-        *******************
-        ** Faxenger help **
-        *******************
-        Commands:
-        > GET_CLIENTS - display the list of connected clients
-        > LOG:{1} - display log 
-        > ALIAS:{1} - set the alias for the client address
-        > FROM:{1} {2} - force the sender to the passed alias ({1}) and send message ({2}) 
-      `);
+      return conn.write(`
+*******************
+** Faxenger help **
+*******************
+Commands:
+> GET_CLIENTS - display the list of connected clients
+> LOG:{1} - display log 
+> ALIAS:{1} - set the alias for the client address
+> FROM:{1} {2} - force the sender to the passed alias ({1}) and send message ({2})\n\n`);
     }
     if (d.match('GET_CLIENTS')) {
-      console.log(`${fromName} asked for clients: ${getSockets().map(getName)}`)
-      return;
+      return conn.write(`> ${getSockets().map(getName).join(`
+> `)}
+\n`);
     }
     if (d.indexOf('LOG:') === 0) {
       // This is a log from the client
-      console.log(`LOG from ${source} (${getName(source)}): ${d.replace(`LOG:`, '')}`);
+      const now = new Date().toLocaleString("en-UK");
+      console.log(`LOG ${now} from ${getName(source)}: ${d.replace(`LOG:`, '')}`);
       return;
     }
     if (d.indexOf('keep-alive') > -1) {
@@ -62,7 +66,7 @@ function handleConnection(conn) {
     if (d.indexOf(SET_ALIAS_CONFIG_KEY) === 0) {
       MAP[source] = d.split(SET_ALIAS_CONFIG_KEY)[1];
       console.log(`[${source}] alias set to ${fromName}`);
-      return;
+      return conn.write(`> alias correctly set to ${MAP[source]} (${source})\n\n`);
     }
     if (d.indexOf(SET_FROM_CONFIG_KEY) === 0) {
       fromName = d.split(SET_FROM_CONFIG_KEY)[1].split(' ')[0];
@@ -74,6 +78,7 @@ function handleConnection(conn) {
     recipientAddrs.forEach(addr =>
       SOCKETS[addr].write(TCP.transformMessage(message, fromName))
     );
+    conn.write(`> message sent\n\n`)
   }
   function onConnClose() {
     delete SOCKETS[source];
