@@ -2,6 +2,7 @@ const TCP_PORT = process.env.TCP_PORT || 9000;
 const TCP_HOST = process.env.TCP_HOST || 'localhost';
 const TCP_SERVER_ALIAS = process.env.TCP_SERVER_ALIAS || '__SERVER__';
 const net = require("net");
+const Message = require('./message.class');
 
 const SET_ALIAS_CONFIG_KEY = 'ALIAS:';
 const SET_FROM_CONFIG_KEY = 'FROM:';
@@ -46,10 +47,18 @@ Commands:
 > GET_CLIENTS - display the list of connected clients
 > LOG:{1} - display log 
 > ALIAS:{1} - set the alias for the client address
+> CLEANUP - validate the clients and remove those that don't respond
 > FROM:{1} {2} - force the sender to the passed alias ({1}) and send message ({2})\n\n`);
     }
     if (d.match('GET_CLIENTS')) {
       return conn.write(`> ${getSockets().map(getName).join(`
+> `)}
+\n`);
+    }
+    if (d.match('CLEANUP')) {
+      getSockets().map(addr => SOCKETS[addr].write('> Connection test'));
+      return conn.write(`> clients cleaned up
+> ${getSockets().map(getName).join(`
 > `)}
 \n`);
     }
@@ -76,7 +85,7 @@ Commands:
     }
     console.log(`Received "${message}" from ${fromName}. Broadcast to ${recipientNames}`);
     recipientAddrs.forEach(addr =>
-      SOCKETS[addr].write(TCP.transformMessage(message, fromName))
+      SOCKETS[addr].write(new Message(message, fromName).toString())
     );
     conn.write(`> message sent\n\n`)
   }

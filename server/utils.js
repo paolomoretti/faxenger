@@ -1,5 +1,8 @@
+const fs = require('fs');
+const bmp = require("bmp-js");
 const path = require("path");
 const TCP = require("./tcp");
+const resizeImg = require('resize-img');
 
 module.exports = {
   aliasChecker(req, res, next) {
@@ -38,6 +41,21 @@ module.exports = {
       console.log(`SOMETHING WRONG`);
     }
     res.send('ok');
+  },
+  // TO BE FINISHED
+  sendImage(req, res) {
+    const encoded = req.file.buffer.toString('base64');
+    const buffer = Buffer.from(encoded, "utf-8");
+    const rawData = bmp.encode({ data: buffer, width: 200, height: 200});
+
+    resizeImg(req.file.buffer, {
+      width: 200,
+      format: 'bmp'
+    }).then(image => {
+      console.log(`image`, image);
+      fs.writeFileSync('unicorn-128x128-resized.bmp', image);
+      res.send('ok');
+    });
   },
   renderIndex(req, res) {
     res.sendFile(path.join(__dirname, '../', 'static', 'index.html'));

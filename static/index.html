@@ -23,10 +23,12 @@
     #alias { color: #777; margin-left: .5em; }
     #error { margin: 1em 0 0 0; color: red; }
     .button-box { display: flex; justify-content: space-between; width: 100%; }
+    #image_previewer { width: 100%; }
   </style>
 </head>
 <body>
 <script>
+  let imageToUpload;
   const setError = (errorText) => {
     const errorEl = document.getElementById('error');
     errorEl.innerText = errorText;
@@ -43,6 +45,25 @@
     }
   }
   const send = () => {
+    // TO BE FINISHED
+    if (imageToUpload) {
+      // Need to send image
+      const formData = new FormData()
+      formData.append('myFile', imageToUpload);
+      fetch('/image', {
+        method: 'POST',
+        body: formData
+      })
+      // fetch(`/image`, {
+      //   method: 'POST',
+      //   headers: {
+      //     'Content-Type': 'application/json'
+      //   },
+      //   redirect: 'follow',
+      //   body: JSON.stringify({ image: imageToUpload })
+      // });
+      return;
+    }
     document.getElementById('result').innerText = '';
     setError('');
     setLoading(true);
@@ -81,7 +102,25 @@
         send();
       }
     }
-  })
+
+    document.querySelector('input[type="file"]').addEventListener('change', function() {
+      if (this.files && this.files[0]) {
+        const file = this.files[0];
+        const reader = new FileReader();
+        reader.onload = function () {
+          const base64String = reader.result.replace("data:", "").replace(/^.+,/, "");
+          console.log(base64String);
+          // imageToUpload = base64String;
+          imageToUpload = file;
+        }
+        reader.readAsDataURL(file);
+
+        const img = document.querySelector('#image_previewer');
+        img.onload = () => URL.revokeObjectURL(img.src);
+        img.src = URL.createObjectURL(file); // set src to blob url
+      }
+    })
+  });
 </script>
 <div class="wrapper" id="wrapper">
   <header>
@@ -90,6 +129,10 @@
   <form action="javascript:send();">
     <label for="text">Write your message</label>
     <textarea name="text" id="text" rows="10"></textarea>
+<!--    <div>-->
+<!--      <input type="file" />-->
+<!--      <img id="image_previewer" />-->
+<!--    </div>-->
     <div class="actions">
       <div class="button-box">
         <button type="button" onclick="send()" id="btn">Send</button>
