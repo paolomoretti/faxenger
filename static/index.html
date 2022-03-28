@@ -16,10 +16,11 @@
     .wrapper.loading { filter: opacity(0.5); pointer-events: none; }
     h1 { margin: -20px 0 20px 0; font-family: 'Shizuru', cursive; font-size: 3em}
     label { display: block; margin-bottom: 1em; }
-    textarea { display: block; margin: 0 0 1em; width: 100%; padding: .5em; font-size: .9em; border: 1px solid #ccc; border-radius: 3px; }
+    textarea { display: block; margin: 0 0 0; width: 100%; padding: .5em .5em 30px; font-size: .9em; border: 1px solid #ccc; border-radius: 3px; }
+    .buttons { margin: 0 0 1em; background: #ccc; border-bottom-left-radius: 2px; border-bottom-right-radius: 2px; position: relative; top: -1px;padding: 0 4px; }
+    .buttons button { border: 0; background: #000; color: #fff; padding: 4px 5px; font-weight: bold; text-transform: uppercase; display: inline-block; border-radius: 0; }
     .actions { display: flex; justify-content: space-between; align-items: center; }
     button { display: inline-block; border-radius: .3em; background: aquamarine; padding: .5em 1em; cursor: pointer; font-size: 1em}
-    #result { font-size: .8em; color: #999; }
     #alias { color: #777; margin-left: .5em; }
     #error { margin: 1em 0 0 0; color: red; }
     .button-box { display: flex; justify-content: space-between; width: 100%; }
@@ -80,7 +81,6 @@
       if (res.status === 200) {
         document.getElementById('text').value = '';
         setError('');
-        document.getElementById('result').innerText = 'Sent!';
       } else {
         console.log(`Set error to`, res.statusText);
         setError(res.statusText);
@@ -94,6 +94,19 @@
       document.getElementById('alias').innerText = `(as ${c.value})`;
     }
   });
+
+  const tag = (tagName) => (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+
+    const field = document.getElementById('text');
+    const start = field.selectionStart;
+    const end = field.selectionEnd;
+    let text = field.value;
+
+    field.value = `${text.substring(0, start)}<${tagName}>${text.substring(start, end)}</${tagName}>${text.substring(end)}`;
+  }
+
   window.addEventListener('load', () => {
     const textArea = document.getElementById('text');
     textArea.focus();
@@ -102,6 +115,8 @@
         send();
       }
     }
+    document.getElementById('boldBtn').addEventListener('mousedown', tag('b'));
+    document.getElementById('highlightBtn').addEventListener('mousedown', tag('h'));
 
     document.querySelector('input[type="file"]').addEventListener('change', function() {
       if (this.files && this.files[0]) {
@@ -129,6 +144,10 @@
   <form action="javascript:send();">
     <label for="text">Write your message</label>
     <textarea name="text" id="text" rows="10"></textarea>
+    <div class="buttons">
+      <button id="boldBtn" type="button">B</button>
+      <button id="highlightBtn" type="button">H</button>
+    </div>
 <!--    <div>-->
 <!--      <input type="file" />-->
 <!--      <img id="image_previewer" />-->

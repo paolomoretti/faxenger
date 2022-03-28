@@ -43,8 +43,8 @@
         <ul id="results">
           ${clients.map(client => `
             <li>
-              <input value="${client.name}" name="alias" type="radio" id="${client.addr}" />
-              <label for="${client.addr}">${client.name}</label>
+              <input value="${client}" name="alias" type="radio" id="${client}" />
+              <label for="${client}">${client}</label>
             </li>
           `).join('')}
         </ul>

@@ -13,7 +13,7 @@ Adafruit_Thermal printer(&mySerial);     // Pass addr to printer constructor
 char* ssids[] = {"Casapiton", "bitterg"};
 char* wifipwds[] = {"casapiton47", "casapiton47"};
 char* wifiStatus[] = {"TIMEOUT", "IDLE", "NO_SSID_AVAILABLE", "UNKNOWN(2)", "CONNECTED", "FAILED_CONNECTION", "UNKNOWN(5)", "UNKNOWN(6)", "DISCONNECTED"};
-char* alias = "Sari";
+char* alias = "Pablo";
 WiFiClient client;
 
 const char* TCP_SERVER_IP = "sestra.local";
@@ -98,7 +98,7 @@ void setup() {
   strcpy(buf, alias);
   strcat(buf, connectionHello);
   printer.println(buf);
-  printer.feed(1);
+  printer.feed(2);
   printer.doubleWidthOff();
 
   printer.sleep();
@@ -109,11 +109,11 @@ void onDataAvailable() {
   String clientCommand = "";
   int h = client.available();
   bool shouldPrint = true;
-  printer.wake();
+//  printer.wake();
 
-  if (!printer.hasPaper()) {
-    client.write("LOG:Error:NO_PAPER");
-  }
+//  if (!printer.hasPaper()) {
+//    client.write("LOG:Error:NO_PAPER");
+//  }
   
   for (int i = 0; i < h; i++) {
     uint8_t chunk = client.read();
@@ -124,7 +124,6 @@ void onDataAvailable() {
     }
     if (shouldPrint) {
       printer.write(chunk);
-      client.write("LOG:Received and printed");
     }
   }
   Serial.print("[START]\n");
@@ -132,13 +131,26 @@ void onDataAvailable() {
   Serial.print("[END]\n");
   if (shouldPrint) {
     Serial.print("Printed\n");
-    client.write("LOG:Received");
+    client.write("LOG:Received and printed");
   } else {
+    // Check if command should trigger an action
     Serial.print("Skipped\n");
-    client.write("LOG:Received and skipped");
+    if (clientCommand == ">doubleWidthOn") {
+      client.write("LOG:Set bold text");
+      printer.doubleWidthOn();
+    }
+    if (clientCommand == ">inverseOn") {
+      client.write("LOG:Set inverse text");
+      printer.inverseOn();
+    }
+    
+    if (clientCommand == ">reset") {
+      client.write("LOG:Reset style");
+      printer.setDefault();
+    }
   }
 
-  printer.sleep();
+//  printer.sleep();
 }
 
 void loop() {
@@ -146,7 +158,6 @@ void loop() {
     while(client.connected()) {
       while(client.available() > 0) {
         onDataAvailable();
-//        printer.write(client.read());
       }
     }
     // TCP client disconnected
