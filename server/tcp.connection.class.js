@@ -34,28 +34,29 @@ class TcpConnection {
       console.log(`KEEP-ALIVE message, skip`);
       return;
     }
-    if (d.match('LOG')) {
+    if (d.match(/log/i)) {
       const now = new Date().toLocaleString("en-UK");
       console.log(`LOG ${now} from ${this.name}: ${d.replace(`LOG:`, '')}`);
       return;
     }
-    if (d.match('HELP')) {
+    if (d.match(/help/i)) {
       return this.conn.write(Message.Help);
     }
-    if (d.match('CLIENTS')) {
-      return this.emitter.emit('CONN_WRITE', this, 'CLIENTS');
+    const clientsCommand = d.match(/^clients (\w*)$/);
+    if (clientsCommand) {
+      return this.emitter.emit('CONN_WRITE', this, 'CLIENTS', clientsCommand[1].trim());
     }
-    if (d.match('CLEANUP')) {
+    if (d.match(/cleanup/i)) {
       return this.emitter.emit('CONN_WRITE', this, 'CLEANUP');
     }
-    if (d.match('ALIAS:')) {
-      this.name = (/ALIAS:(.*)/.exec(d))[1].trim();
+    if (d.match(/alias:/i)) {
+      this.name = (/alias:(.*)/i.exec(d))[1].trim();
       this.sysWrite(`alias set to ${this.name}`);
       return;
     }
-    if (d.match('FROM:')) {
-      const from = (/FROM:(.*)/.exec(d))[1].trim().split(' ')[0];
-      const message = d.replace(`FROM:${from} `, '').trim();
+    if (d.match(/from:/i)) {
+      const from = (/from:(.*)/i.exec(d))[1].trim().split(' ')[0];
+      const message = d.replace(`FROM:${from} `, '').replace(`from:${from} `, '').trim();
       this.emitter.emit('CONN_WRITE', from, 'MSG_FROM', message);
       return;
     }

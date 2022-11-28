@@ -87,7 +87,8 @@ void setup() {
   // Setup printer
   printer.begin();
   printer.setDefault();
-  printer.setHeatConfig(11, 200, 100);
+  printer.setHeatConfig(5, 250, 250);
+//  printer.setPrintDensity(15, 5);
   printer.setLineHeight(1);
   printer.boldOn();
   printer.doubleWidthOn();

@@ -1,16 +1,19 @@
+const axios = require("axios");
 const Message = class {
   static Help = `
 *******************
 ** Faxenger help **
 *******************
 Commands:
-> CLIENTS - display the list of connected clients
-> LOG:{1} - display log 
-> ALIAS:{1} - set the alias for the client address
-> CLEANUP - validate the clients and remove those that don't respond
-> FROM:{1} {2} - force the sender to the passed alias ({1}) and send message ({2})
+> clients list|show|ls - display the list of connected clients
+> clients cleanup|clear|refresh|clean - validate the clients and remove those that don't respond
+> log:{1} - display log 
+> alias:{1} - set the alias for the client address
+> from:{1} {2} - force the sender to the passed alias ({1}) and send message ({2})
 
 `;
+  static ClientsUnknownCommand = (command) => `> Unknown clients command "${command}"\n`;
+
   static Clients = (conns) => `
 ${Object.keys(conns).map(k => `> ${conns[k].name}`).join(`\n`)}
   \n`;
@@ -64,7 +67,15 @@ ${Object.keys(conns).map(k => `> ${conns[k].name}`).join(`\n`)}
     return `${this.getHeading()}\n${this.message}${this.getFooter()}`;
   }
 
+  notify(text) {
+    return axios.post(`https://api.telegram.org/bot5127335905:AAF4sqJtVMKFYLa8C9fAFJQxRyiOYLA1H_U/sendMessage`,  {
+      chat_id: "-790930077",
+      text: text || this.message || "NO_MESSAGE"
+    })
+  }
+
   async writeChunks(conn) {
+    this.notify(this.message);
     const chunks = this.getChunks();
     const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
     const CHAR_TIME = 80;

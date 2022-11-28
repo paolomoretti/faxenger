@@ -9,20 +9,22 @@ class TcpServer {
   connections = {};
   socket;
 
+  static ConnectionClearMs = 5 * 60 * 1000;
+
   constructor(app) {
     this.app = app;
     app.__server = this;
     this.emitter = new EventEmitter();
     this.emitter.on('CONN_WRITE', (tcpConn, code, message) => {
+      console.log(`New command: code=${code}, message/action=${message}`);
       switch (code) {
         case 'CLIENTS':
-          tcpConn.write(Message.Clients(this.connections));
-          break;
-        case 'CLEANUP':
-          for (const k in this.connections) {
-            if (this.connections[k] !== tcpConn) {
-              this.connections[k].write(`> connection test`);
-            }
+          if (['show', 'list', 'ls'].includes(message)) {
+            tcpConn.write(Message.Clients(this.connections));
+          } else if (['cleanup', 'clean', 'clear', 'refresh'].includes(message)) {
+            this.clearConnections(tcpConn);
+          } else {
+            tcpConn.write(Message.ClientsUnknownCommand(message));
           }
           break;
         case 'MSG_FROM':
@@ -48,6 +50,19 @@ class TcpServer {
     })
   }
 
+  clearConnections(tcpConn) {
+    console.log('[clear connections] ...');
+    for (const k in this.connections) {
+      if (this.connections[k] !== tcpConn) {
+        this.connections[k].write(`> connection test`);
+      }
+    }
+    console.log('done!');
+    if (tcpConn) {
+      tcpConn.write(Message.Clients(this.connections));
+    }
+  }
+
   getConnectionNames() {
     return Object.keys(this.connections).map(k => this.connections[k].name);
   }
@@ -62,12 +77,16 @@ class TcpServer {
 
   async start() {
     return new Promise((resolve) => {
+      this.cleanerInt = setInterval(() => {
+        this.clearConnections();
+      }, TcpServer.ConnectionClearMs);
+
       this.server = net.createServer(this.onConnection.bind(this));
       this.server.listen(CONFIG.TCP_PORT, () => {
         console.log('server listening to %j', this.server.address());
         const serverSocket = new TcpSocket(this);
         serverSocket.create().then(socket => this.socket = socket);
-        resolve();
+        resolve(this);
       });
     });
   }
