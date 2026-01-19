@@ -269,29 +269,25 @@ void printWrapped(String text) {
 }
 
 void onDataAvailable() {
-  // Message coming in
   String clientCommand = "";
-  int h = client.available();
   bool shouldPrint = true;
-  //  printer.wake();
-
-  //  if (!printer.hasPaper()) {
-  //    client.write("LOG:Error:NO_PAPER");
-  //  }
-
-  // Read all available bytes
   String messageToPrint = "";
 
   while (client.available()) {
-    uint8_t chunk = client.read();
-    clientCommand += (char)chunk;
+    char c = (char)client.read();
 
-    // Command filtering logic
-    if (clientCommand == ">" && shouldPrint) {
+    // Detect start of a command
+    if (c == '>') {
+      clientCommand = ">";
       shouldPrint = false;
-      Serial.print("Skip message\n");
+      Serial.print("Start command mode\n");
+    } else {
+      clientCommand += c;
     }
 
+    bool outputCommand = false;
+
+    // Check for exact command matches
     if (clientCommand == ">blink") {
       client.write("LOG:Blinking");
       for (int k = 0; k < 10; k++) {
@@ -300,57 +296,50 @@ void onDataAvailable() {
         digitalWrite(LED_PIN, LOW);
         delay(500);
       }
+      outputCommand = true;
+    }
+
+    if (outputCommand) {
+      clientCommand = "";
+      shouldPrint = true;
+      continue; // Skip adding the command character to messageToPrint
     }
 
     if (shouldPrint) {
-      messageToPrint += (char)chunk;
+      messageToPrint += c;
     }
   }
+
   Serial.print("[START]\n");
-  Serial.print(clientCommand);
+  Serial.print(clientCommand); // Any leftover partial command
   Serial.print("[END]\n");
-  if (shouldPrint) {
-    if (messageToPrint.length() > 0) {
-      // 1. Blink for 3 seconds
-      for (int i = 0; i < 6; i++) {
-        digitalWrite(LED_PIN, HIGH); // ON
-        delay(250);
-        digitalWrite(LED_PIN, LOW); // OFF
-        delay(250);
-      }
 
-      // 2. Solid ON while printing
-      digitalWrite(LED_PIN, HIGH);
-
-      printWrapped(messageToPrint);
-      printer.println(F(""));
-      printer.println(F("--------------------------------"));
-
-      // 3. Keep ON for 2 seconds then OFF
-      delay(2000);
-      digitalWrite(LED_PIN, LOW);
+  if (messageToPrint.length() > 0) {
+    // 1. Blink for 3 seconds
+    for (int i = 0; i < 6; i++) {
+      digitalWrite(LED_PIN, HIGH); // ON
+      delay(250);
+      digitalWrite(LED_PIN, LOW); // OFF
+      delay(250);
     }
+
+    // 2. Solid ON while printing
+    digitalWrite(LED_PIN, HIGH);
+
+    printWrapped(messageToPrint);
+    printer.println(F(""));
+    printer.println(F("--------------------------------"));
+
+    // 3. Keep ON for 2 seconds then OFF
+    delay(2000);
+    digitalWrite(LED_PIN, LOW);
+
     Serial.print("Printed\n");
     client.write("LOG:Received and printed");
-  } else {
-    // Check if command should trigger an action
-    Serial.print("Skipped\n");
-    if (clientCommand == ">doubleWidthOn") {
-      client.write("LOG:Set bold text");
-      printer.doubleWidthOn();
-    }
-    if (clientCommand == ">inverseOn") {
-      client.write("LOG:Set inverse text");
-      printer.inverseOn();
-    }
-
-    if (clientCommand == ">reset") {
-      client.write("LOG:Reset style");
-      printer.setDefault();
-    }
+  } else if (!shouldPrint) {
+    // Logic for skipped/partial commands that didn't match anything
+    Serial.print("Skipped partial/unknown command or empty text\n");
   }
-
-  //  printer.sleep();
 }
 
 void loop() {
