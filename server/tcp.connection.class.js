@@ -1,4 +1,4 @@
-const Message = require('./message.class');
+const Message = require("./message.class");
 
 class TcpConnection {
   constructor(conn, onClosed, emitter) {
@@ -9,10 +9,10 @@ class TcpConnection {
     this.name = this.source;
     this.key = Math.random() * new Date().getTime() + this.source;
 
-    this.conn.setEncoding('utf8');
-    this.conn.once('close', this.onClose.bind(this));
-    this.conn.on('error', this.onError.bind(this));
-    this.conn.on('data', this.onData.bind(this));
+    this.conn.setEncoding("utf8");
+    this.conn.once("close", this.onClose.bind(this));
+    this.conn.on("error", this.onError.bind(this));
+    this.conn.on("data", this.onData.bind(this));
 
     console.log(`new TCP connection from %j`, this.addr());
   }
@@ -27,40 +27,45 @@ class TcpConnection {
 
   onData(d) {
     d = d.trim();
-    if (d === '') {
+    if (d === "") {
       return;
     }
-    if (d.match('keep-alive')) {
+    if (d.match("keep-alive")) {
       console.log(`KEEP-ALIVE message, skip`);
       return;
     }
-    if (d.match('LOG')) {
+    if (d.match("LOG")) {
       const now = new Date().toLocaleString("en-UK");
-      console.log(`LOG ${now} from ${this.name}: ${d.replace(`LOG:`, '')}`);
+      console.log(`LOG ${now} from ${this.name}: ${d.replace(`LOG:`, "")}`);
       return;
     }
-    if (d.match('HELP')) {
+    if (d.match("HELP")) {
       return this.conn.write(Message.Help);
     }
-    if (d.match('CLIENTS')) {
-      return this.emitter.emit('CONN_WRITE', this, 'CLIENTS');
+    if (d.match("CLIENTS")) {
+      return this.emitter.emit("CONN_WRITE", this, "CLIENTS");
     }
-    if (d.match('CLEANUP')) {
-      return this.emitter.emit('CONN_WRITE', this, 'CLEANUP');
+    if (d.match("CLEANUP")) {
+      return this.emitter.emit("CONN_WRITE", this, "CLEANUP");
     }
-    if (d.match('ALIAS:')) {
-      this.name = (/ALIAS:(.*)/.exec(d))[1].trim();
+    if (d.match("ALIAS:")) {
+      this.name = /ALIAS:(.*)/.exec(d)[1].trim();
       this.sysWrite(`alias set to ${this.name}`);
       return;
     }
-    if (d.match('FROM:')) {
-      const from = (/FROM:(.*)/.exec(d))[1].trim().split(' ')[0];
-      const message = d.replace(`FROM:${from} `, '').trim();
-      this.emitter.emit('CONN_WRITE', from, 'MSG_FROM', message);
+    if (d.match("FROM:")) {
+      const from = /FROM:(.*)/.exec(d)[1].trim().split(" ")[0];
+      const message = d.replace(`FROM:${from} `, "").trim();
+      this.emitter.emit("CONN_WRITE", from, "MSG_FROM", message);
+      return;
+    }
+    if (d.indexOf(">") === 0) {
+      this.emitter.emit("CONN_WRITE", this, "RAW", d);
+      this.sysWrite(`command sent raw`);
       return;
     }
     // Send normal message
-    this.emitter.emit('CONN_WRITE', this, 'MSG', d);
+    this.emitter.emit("CONN_WRITE", this, "MSG", d);
     this.sysWrite(`message processed`);
   }
 

@@ -11,12 +11,12 @@
 SoftwareSerial mySerial(RX_PIN, TX_PIN); // Declare SoftwareSerial obj first
 Adafruit_Thermal printer(&mySerial);     // Pass addr to printer constructor
 
-char *ssids[] = {"Sestra hive", "giardufficio"};
-char *wifipwds[] = {"haivenetvuorc", "Ej*!pGwvbJaN5pah"};
-char *wifiStatus[] = {"TIMEOUT",    "IDLE",       "NO_SSID_AVAILABLE",
-                      "UNKNOWN(2)", "CONNECTED",  "FAILED_CONNECTION",
-                      "UNKNOWN(5)", "UNKNOWN(6)", "DISCONNECTED"};
-char *alias = "Sari";
+const char *ssids[] = {"Sestra hive", "giardufficio"};
+const char *wifipwds[] = {"haivenetvuorc", "Ej*!pGwvbJaN5pah"};
+const char *wifiStatus[] = {"TIMEOUT",    "IDLE",       "NO_SSID_AVAILABLE",
+                            "UNKNOWN(2)", "CONNECTED",  "FAILED_CONNECTION",
+                            "UNKNOWN(5)", "UNKNOWN(6)", "DISCONNECTED"};
+const char *alias = "Sari";
 WiFiClient client;
 
 const char *TCP_SERVER_IP = "192.168.0.101";
@@ -198,7 +198,7 @@ void setup() {
   printer.doubleWidthOff();
   printer.wake();
   printer.println(F("\n"));
-  char *connectionHello = " connected!";
+  const char *connectionHello = " connected!";
   char buf[strlen(alias) + strlen(connectionHello)];
   strcpy(buf, alias);
   strcat(buf, connectionHello);
@@ -206,6 +206,7 @@ void setup() {
 
   printer.print(F("SSID: "));
   printer.println(WiFi.SSID());
+
   printer.print(F("Time: "));
   printer.print(wifiDuration / 1000);
   printer.println(F("s"));
@@ -289,6 +290,16 @@ void onDataAvailable() {
     if (clientCommand == ">" && shouldPrint) {
       shouldPrint = false;
       Serial.print("Skip message\n");
+    }
+
+    if (clientCommand == ">blink") {
+      client.write("LOG:Blinking");
+      for (int k = 0; k < 10; k++) {
+        digitalWrite(LED_PIN, HIGH);
+        delay(500);
+        digitalWrite(LED_PIN, LOW);
+        delay(500);
+      }
     }
 
     if (shouldPrint) {

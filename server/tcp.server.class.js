@@ -44,6 +44,15 @@ class TcpServer {
             }
           }
           break;
+        case "RAW":
+          console.log(`Broadcasting RAW command from ${tcpConn}`, message);
+          for (const k in this.connections) {
+            const conn = this.connections[k];
+            if (conn !== tcpConn) {
+              conn.write(message);
+            }
+          }
+          break;
       }
     });
   }
