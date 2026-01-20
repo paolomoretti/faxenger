@@ -40,7 +40,7 @@ ${Object.keys(conns)
     return `${this.getDate()}\nFrom ${this.from}:`;
   }
   getFooter() {
-    return `\n \n***\n \n \n`;
+    return ``;
   }
 
   toString() {
