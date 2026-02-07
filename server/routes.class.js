@@ -11,7 +11,7 @@ class RoutesClass {
     app.use(
       express.json({
         limit: "50mb",
-      })
+      }),
     );
     app.use(cookieParser());
 
@@ -23,6 +23,18 @@ class RoutesClass {
   }
 
   aliasChecker = (req, res, next) => {
+    if (req.query.user) {
+      const user = req.query.user;
+      const found = this.server
+        .getConnectionNames()
+        .find((c) => c.toLowerCase() === user.toLowerCase());
+
+      if (found) {
+        res.cookie("alias", found);
+        return res.redirect("/");
+      }
+    }
+
     console.log(`req.cookies`, req.cookies);
     if (
       !req.cookies.alias ||
@@ -30,7 +42,7 @@ class RoutesClass {
     ) {
       // Haven't got an alias yet, let's set it
       return res.sendFile(
-        path.join(__dirname, "../", "static", "set_recipient_page.html")
+        path.join(__dirname, "../", "static", "set_recipient_page.html"),
       );
     }
     next();
@@ -51,7 +63,7 @@ class RoutesClass {
 
       if (subscribedAliases.indexOf(alias) === -1) {
         let availableAliases = subscribedAliases.filter(
-          (a) => a !== CONFIG.SERVER_SOCKER_ALIAS
+          (a) => a !== CONFIG.SERVER_SOCKER_ALIAS,
         );
         if (availableAliases.length === 0) {
           availableAliases = "None";
